@@ -1,11 +1,13 @@
 # tokencrypt (3ncr.org)
 
-Ruby implementation of the [3ncr.org](https://3ncr.org/) v1 string encryption
-standard.
+[![Test](https://github.com/3ncr/tokencrypt-ruby/actions/workflows/test.yml/badge.svg)](https://github.com/3ncr/tokencrypt-ruby/actions/workflows/test.yml)
+[![Gem Version](https://img.shields.io/gem/v/tokencrypt.svg)](https://rubygems.org/gems/tokencrypt)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-3ncr.org is a small, interoperable format for encrypted strings, originally
-intended for encrypting tokens in configuration files but usable for any UTF-8
-string. v1 uses AES-256-GCM with a 12-byte random IV:
+[3ncr.org](https://3ncr.org/) is a standard for string encryption / decryption
+(algorithms + storage format), originally intended for encrypting tokens in
+configuration files but usable for any UTF-8 string. v1 uses AES-256-GCM for
+authenticated encryption with a 12-byte random IV:
 
 ```
 3ncr.org/1#<base64(iv[12] || ciphertext || tag[16])>
@@ -13,6 +15,8 @@ string. v1 uses AES-256-GCM with a 12-byte random IV:
 
 Encrypted values look like
 `3ncr.org/1#pHRufQld0SajqjHx+FmLMcORfNQi1d674ziOPpG52hqW5+0zfJD91hjXsBsvULVtB017mEghGy3Ohj+GgQY5MQ`.
+
+This is the official Ruby implementation.
 
 ## Install
 
@@ -32,22 +36,9 @@ Requires Ruby 3.1+.
 
 ## Usage
 
-Pick a constructor based on the entropy of your secret.
-
-### Recommended: Argon2id (low-entropy secrets)
-
-For passwords or passphrases, use `TokenCrypt.from_argon2id`. It uses the
-parameters recommended by the [3ncr.org v1 spec](https://3ncr.org/1/#kdf)
-(m=19456 KiB, t=2, p=1). Salt must be at least 16 bytes.
-
-```ruby
-require "tokencrypt"
-
-tc = Tokencrypt::TokenCrypt.from_argon2id(
-  "correct horse battery staple",
-  "0123456789abcdef"
-)
-```
+Pick a constructor based on the entropy of your secret — see the
+[3ncr.org v1 KDF guidance](https://3ncr.org/1/#kdf) for the canonical
+recommendation.
 
 ### Recommended: raw 32-byte key (high-entropy secrets)
 
@@ -68,11 +59,43 @@ token), hash it through SHA3-256:
 tc = Tokencrypt::TokenCrypt.from_sha3("some-high-entropy-api-token")
 ```
 
+### Recommended: Argon2id (passwords / low-entropy secrets)
+
+For passwords or passphrases, use `Tokencrypt::TokenCrypt.from_argon2id`. It
+uses the parameters recommended by the
+[3ncr.org v1 spec](https://3ncr.org/1/#kdf) (`m=19456 KiB, t=2, p=1`). The salt
+must be at least 16 bytes.
+
+```ruby
+require "tokencrypt"
+
+tc = Tokencrypt::TokenCrypt.from_argon2id(
+  "correct horse battery staple",
+  "0123456789abcdef"
+)
+```
+
+### Legacy: PBKDF2-SHA3 (existing data only)
+
 This library does not implement the legacy PBKDF2-SHA3 KDF that earlier 3ncr.org
-libraries used for backward compatibility. If you need to decrypt data produced
-by that KDF, derive the 32-byte key with
-`OpenSSL::KDF.pbkdf2_hmac(secret, salt: salt, iterations: iterations, length: 32, hash: "SHA3-256")`
-yourself and pass it to `from_raw_key`.
+libraries (Go, Node.js, PHP) shipped for backward compatibility. If you need to
+decrypt data produced by that KDF, derive the 32-byte key with
+`OpenSSL::KDF.pbkdf2_hmac` using `digest: OpenSSL::Digest.new("SHA3-256")`
+yourself and pass the result to `from_raw_key`:
+
+```ruby
+require "openssl"
+require "tokencrypt"
+
+key = OpenSSL::KDF.pbkdf2_hmac(
+  secret,
+  salt: salt,
+  iterations: iterations,
+  length: 32,
+  hash: OpenSSL::Digest.new("SHA3-256")
+)
+tc = Tokencrypt::TokenCrypt.from_raw_key(key)
+```
 
 ### Encrypt / decrypt
 
@@ -115,4 +138,4 @@ bundle exec rake test
 
 ## License
 
-MIT
+MIT — see [LICENSE](LICENSE).

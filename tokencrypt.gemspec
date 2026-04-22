@@ -28,7 +28,9 @@ Gem::Specification.new do |spec|
   spec.files = Dir[
     "lib/**/*.rb",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    "CHANGELOG.md",
+    "SECURITY.md"
   ]
   spec.require_paths = ["lib"]
 
