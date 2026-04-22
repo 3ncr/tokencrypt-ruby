@@ -108,7 +108,9 @@ module Tokencrypt
       cipher.encrypt
       cipher.key = @key
       cipher.iv = iv
-      ciphertext = cipher.update(plaintext.dup.force_encoding(Encoding::UTF_8)) + cipher.final
+      data = plaintext.b
+      # Ruby 3.1's OpenSSL raises on +update("")+; skip it for empty input.
+      ciphertext = data.empty? ? cipher.final : cipher.update(data) + cipher.final
       payload = iv + ciphertext + cipher.auth_tag(TAG_SIZE)
       HEADER_V1 + Base64.strict_encode64(payload).delete("=")
     end
@@ -141,7 +143,8 @@ module Tokencrypt
       cipher.key = @key
       cipher.iv = iv
       cipher.auth_tag = tag
-      plaintext = cipher.update(ciphertext) + cipher.final
+      # Ruby 3.1's OpenSSL raises on +update("")+; skip it for empty input.
+      plaintext = ciphertext.empty? ? cipher.final : cipher.update(ciphertext) + cipher.final
       plaintext.force_encoding(Encoding::UTF_8)
     rescue OpenSSL::Cipher::CipherError
       raise Error, "authentication tag verification failed"
