@@ -2,6 +2,7 @@
 
 [![Test](https://github.com/3ncr/tokencrypt-ruby/actions/workflows/test.yml/badge.svg)](https://github.com/3ncr/tokencrypt-ruby/actions/workflows/test.yml)
 [![Gem Version](https://img.shields.io/gem/v/tokencrypt.svg)](https://rubygems.org/gems/tokencrypt)
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/3ncr/tokencrypt-ruby/badge)](https://scorecard.dev/viewer/?uri=github.com/3ncr/tokencrypt-ruby)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 [3ncr.org](https://3ncr.org/) is a standard for string encryption / decryption
