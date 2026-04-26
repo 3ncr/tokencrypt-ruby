@@ -1,7 +1,7 @@
-# tokencrypt (3ncr.org)
+# 3ncr (Ruby)
 
 [![Test](https://github.com/3ncr/tokencrypt-ruby/actions/workflows/test.yml/badge.svg)](https://github.com/3ncr/tokencrypt-ruby/actions/workflows/test.yml)
-[![Gem Version](https://img.shields.io/gem/v/tokencrypt.svg)](https://rubygems.org/gems/tokencrypt)
+[![Gem Version](https://img.shields.io/gem/v/3ncr.svg)](https://rubygems.org/gems/3ncr)
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/3ncr/tokencrypt-ruby/badge)](https://scorecard.dev/viewer/?uri=github.com/3ncr/tokencrypt-ruby)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
@@ -24,13 +24,13 @@ This is the official Ruby implementation.
 Add to your `Gemfile`:
 
 ```ruby
-gem "tokencrypt"
+gem "3ncr"
 ```
 
 Or install directly:
 
 ```bash
-gem install tokencrypt
+gem install 3ncr
 ```
 
 Requires Ruby 3.1+.
@@ -47,30 +47,30 @@ If you already have a 32-byte AES-256 key, skip the KDF and pass it directly.
 
 ```ruby
 require "securerandom"
-require "tokencrypt"
+require "3ncr"
 
 key = SecureRandom.bytes(32) # or load from an env variable / secret store
-tc = Tokencrypt::TokenCrypt.from_raw_key(key)
+tc = Threencr::TokenCrypt.from_raw_key(key)
 ```
 
 For a high-entropy secret that is not already 32 bytes (e.g. a random API
 token), hash it through SHA3-256:
 
 ```ruby
-tc = Tokencrypt::TokenCrypt.from_sha3("some-high-entropy-api-token")
+tc = Threencr::TokenCrypt.from_sha3("some-high-entropy-api-token")
 ```
 
 ### Recommended: Argon2id (passwords / low-entropy secrets)
 
-For passwords or passphrases, use `Tokencrypt::TokenCrypt.from_argon2id`. It
+For passwords or passphrases, use `Threencr::TokenCrypt.from_argon2id`. It
 uses the parameters recommended by the
 [3ncr.org v1 spec](https://3ncr.org/1/#kdf) (`m=19456 KiB, t=2, p=1`). The salt
 must be at least 16 bytes.
 
 ```ruby
-require "tokencrypt"
+require "3ncr"
 
-tc = Tokencrypt::TokenCrypt.from_argon2id(
+tc = Threencr::TokenCrypt.from_argon2id(
   "correct horse battery staple",
   "0123456789abcdef"
 )
@@ -86,7 +86,7 @@ yourself and pass the result to `from_raw_key`:
 
 ```ruby
 require "openssl"
-require "tokencrypt"
+require "3ncr"
 
 key = OpenSSL::KDF.pbkdf2_hmac(
   secret,
@@ -95,7 +95,7 @@ key = OpenSSL::KDF.pbkdf2_hmac(
   length: 32,
   hash: OpenSSL::Digest.new("SHA3-256")
 )
-tc = Tokencrypt::TokenCrypt.from_raw_key(key)
+tc = Threencr::TokenCrypt.from_raw_key(key)
 ```
 
 ### Encrypt / decrypt
@@ -113,7 +113,7 @@ tc.decrypt_if_3ncr(encrypted) # => plaintext
 through it regardless of whether it was encrypted.
 
 Decryption failures (bad tag, truncated input, malformed base64) raise
-`Tokencrypt::Error`.
+`Threencr::Error`.
 
 ## Cross-implementation interop
 
@@ -128,7 +128,7 @@ the [Go](https://github.com/3ncr/tokencrypt),
 32-byte AES key behind those vectors was originally derived via PBKDF2-SHA3-256
 with `secret = "a"`, `salt = "b"`, `iterations = 1000`; the tests hardcode the
 resulting key and verify the AES-256-GCM envelope round-trips exactly. See
-`test/test_tokencrypt.rb`.
+`test/test_3ncr.rb`.
 
 ## Development
 
