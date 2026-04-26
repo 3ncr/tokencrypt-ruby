@@ -2,7 +2,7 @@
 
 require "minitest/autorun"
 require "securerandom"
-require "tokencrypt"
+require "3ncr"
 
 # Canonical v1 envelope test vectors -- shared with Go, Node, PHP, Python,
 # Rust, Java, and C# implementations. The 32-byte AES key was originally
@@ -26,17 +26,17 @@ CANONICAL_VECTORS = [
 
 class TestCanonicalVectors < Minitest::Test
   def test_decrypts_canonical_vectors
-    tc = Tokencrypt::TokenCrypt.from_raw_key(CANONICAL_KEY)
+    tc = Threencr::TokenCrypt.from_raw_key(CANONICAL_KEY)
     CANONICAL_VECTORS.each do |plaintext, encrypted|
       assert_equal plaintext, tc.decrypt_if_3ncr(encrypted)
     end
   end
 
   def test_round_trip_canonical_plaintexts
-    tc = Tokencrypt::TokenCrypt.from_raw_key(CANONICAL_KEY)
+    tc = Threencr::TokenCrypt.from_raw_key(CANONICAL_KEY)
     CANONICAL_VECTORS.each do |plaintext, _|
       enc = tc.encrypt_3ncr(plaintext)
-      assert enc.start_with?(Tokencrypt::HEADER_V1), "missing v1 header in #{enc}"
+      assert enc.start_with?(Threencr::HEADER_V1), "missing v1 header in #{enc}"
       assert_equal plaintext, tc.decrypt_if_3ncr(enc)
     end
   end
@@ -53,7 +53,7 @@ class TestRoundTripEdgeCases < Minitest::Test
   ].freeze
 
   def test_round_trip
-    tc = Tokencrypt::TokenCrypt.from_raw_key(SecureRandom.bytes(32))
+    tc = Threencr::TokenCrypt.from_raw_key(SecureRandom.bytes(32))
     PLAINTEXTS.each do |plaintext|
       assert_equal plaintext, tc.decrypt_if_3ncr(tc.encrypt_3ncr(plaintext))
     end
@@ -62,19 +62,19 @@ end
 
 class TestEnvelopePassthrough < Minitest::Test
   def test_non_3ncr_returned_unchanged
-    tc = Tokencrypt::TokenCrypt.from_raw_key(SecureRandom.bytes(32))
+    tc = Threencr::TokenCrypt.from_raw_key(SecureRandom.bytes(32))
     assert_equal "plain config value", tc.decrypt_if_3ncr("plain config value")
   end
 
   def test_empty_string_returned_unchanged
-    tc = Tokencrypt::TokenCrypt.from_raw_key(SecureRandom.bytes(32))
+    tc = Threencr::TokenCrypt.from_raw_key(SecureRandom.bytes(32))
     assert_equal "", tc.decrypt_if_3ncr("")
   end
 end
 
 class TestIVUniqueness < Minitest::Test
   def test_two_encrypts_differ
-    tc = Tokencrypt::TokenCrypt.from_raw_key(SecureRandom.bytes(32))
+    tc = Threencr::TokenCrypt.from_raw_key(SecureRandom.bytes(32))
     a = tc.encrypt_3ncr("same plaintext")
     b = tc.encrypt_3ncr("same plaintext")
     refute_equal a, b
@@ -83,34 +83,34 @@ end
 
 class TestTamperDetection < Minitest::Test
   def test_flipped_byte_in_payload_is_rejected
-    tc = Tokencrypt::TokenCrypt.from_raw_key(SecureRandom.bytes(32))
+    tc = Threencr::TokenCrypt.from_raw_key(SecureRandom.bytes(32))
     enc = tc.encrypt_3ncr("sensitive value")
-    body = enc[Tokencrypt::HEADER_V1.length..]
+    body = enc[Threencr::HEADER_V1.length..]
     idx = body.length / 2
     flip = body[idx] == "A" ? "B" : "A"
-    flipped = Tokencrypt::HEADER_V1 + body[0...idx] + flip + body[(idx + 1)..]
-    assert_raises(Tokencrypt::Error) { tc.decrypt_if_3ncr(flipped) }
+    flipped = Threencr::HEADER_V1 + body[0...idx] + flip + body[(idx + 1)..]
+    assert_raises(Threencr::Error) { tc.decrypt_if_3ncr(flipped) }
   end
 
   def test_truncated_payload_is_rejected
-    tc = Tokencrypt::TokenCrypt.from_raw_key(SecureRandom.bytes(32))
-    assert_raises(Tokencrypt::Error) do
-      tc.decrypt_if_3ncr("#{Tokencrypt::HEADER_V1}AAAA")
+    tc = Threencr::TokenCrypt.from_raw_key(SecureRandom.bytes(32))
+    assert_raises(Threencr::Error) do
+      tc.decrypt_if_3ncr("#{Threencr::HEADER_V1}AAAA")
     end
   end
 end
 
 class TestBase64PaddingRobustness < Minitest::Test
   def test_decoder_accepts_padded_input
-    tc = Tokencrypt::TokenCrypt.from_raw_key(CANONICAL_KEY)
+    tc = Threencr::TokenCrypt.from_raw_key(CANONICAL_KEY)
     plaintext, encrypted = CANONICAL_VECTORS.first
-    body = encrypted[Tokencrypt::HEADER_V1.length..]
+    body = encrypted[Threencr::HEADER_V1.length..]
     padded = body + ("=" * ((-body.length) % 4))
-    assert_equal plaintext, tc.decrypt_if_3ncr(Tokencrypt::HEADER_V1 + padded)
+    assert_equal plaintext, tc.decrypt_if_3ncr(Threencr::HEADER_V1 + padded)
   end
 
   def test_encoder_emits_no_padding
-    tc = Tokencrypt::TokenCrypt.from_raw_key(SecureRandom.bytes(32))
+    tc = Threencr::TokenCrypt.from_raw_key(SecureRandom.bytes(32))
     enc = tc.encrypt_3ncr("some value")
     refute_includes enc, "="
   end
@@ -118,26 +118,26 @@ end
 
 class TestKDFs < Minitest::Test
   def test_raw_key_requires_32_bytes
-    assert_raises(ArgumentError) { Tokencrypt::TokenCrypt.from_raw_key("\x00" * 31) }
-    assert_raises(ArgumentError) { Tokencrypt::TokenCrypt.from_raw_key("\x00" * 33) }
+    assert_raises(ArgumentError) { Threencr::TokenCrypt.from_raw_key("\x00" * 31) }
+    assert_raises(ArgumentError) { Threencr::TokenCrypt.from_raw_key("\x00" * 33) }
   end
 
   def test_sha3_round_trip
-    tc = Tokencrypt::TokenCrypt.from_sha3("some-high-entropy-api-token")
+    tc = Threencr::TokenCrypt.from_sha3("some-high-entropy-api-token")
     assert_equal "hello", tc.decrypt_if_3ncr(tc.encrypt_3ncr("hello"))
   end
 
   def test_sha3_matches_known_vector
     # SHA3-256("a") = 80084bf2fba02475726feb2cab2d8215eab14bc6bdd8bfb2c8151257032ecd8b
     expected_key = ["80084bf2fba02475726feb2cab2d8215eab14bc6bdd8bfb2c8151257032ecd8b"].pack("H*")
-    expected = Tokencrypt::TokenCrypt.from_raw_key(expected_key)
-    actual = Tokencrypt::TokenCrypt.from_sha3("a")
+    expected = Threencr::TokenCrypt.from_raw_key(expected_key)
+    actual = Threencr::TokenCrypt.from_sha3("a")
     enc = expected.encrypt_3ncr("hello")
     assert_equal "hello", actual.decrypt_if_3ncr(enc)
   end
 
   def test_argon2id_round_trip
-    tc = Tokencrypt::TokenCrypt.from_argon2id(
+    tc = Threencr::TokenCrypt.from_argon2id(
       "correct horse battery staple", "0123456789abcdef"
     )
     CANONICAL_VECTORS.each do |plaintext, _|
@@ -147,17 +147,17 @@ class TestKDFs < Minitest::Test
 
   def test_argon2id_short_salt_rejected
     assert_raises(ArgumentError) do
-      Tokencrypt::TokenCrypt.from_argon2id("secret", "short")
+      Threencr::TokenCrypt.from_argon2id("secret", "short")
     end
   end
 
   def test_argon2id_wrong_secret_fails
     salt = "0123456789abcdef"
-    tc = Tokencrypt::TokenCrypt.from_argon2id("right secret", salt)
+    tc = Threencr::TokenCrypt.from_argon2id("right secret", salt)
     enc = tc.encrypt_3ncr("hello")
 
-    other = Tokencrypt::TokenCrypt.from_argon2id("wrong secret", salt)
-    assert_raises(Tokencrypt::Error) { other.decrypt_if_3ncr(enc) }
+    other = Threencr::TokenCrypt.from_argon2id("wrong secret", salt)
+    assert_raises(Threencr::Error) { other.decrypt_if_3ncr(enc) }
   end
 
   def test_argon2id_matches_cross_implementation_key
@@ -166,8 +166,8 @@ class TestKDFs < Minitest::Test
     # below was computed from secret="correct horse battery staple",
     # salt="0123456789abcdef" with m=19456, t=2, p=1.
     expected_key = ["832e52b959b967b570ee4781f6c7bda7ced019ca266ac781fd2d94d4e853b0cd"].pack("H*")
-    expected = Tokencrypt::TokenCrypt.from_raw_key(expected_key)
-    actual = Tokencrypt::TokenCrypt.from_argon2id(
+    expected = Threencr::TokenCrypt.from_raw_key(expected_key)
+    actual = Threencr::TokenCrypt.from_argon2id(
       "correct horse battery staple", "0123456789abcdef"
     )
     enc = expected.encrypt_3ncr("interop check")

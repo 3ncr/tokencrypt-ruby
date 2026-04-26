@@ -1,10 +1,10 @@
 # frozen_string_literal: true
 
-require_relative "lib/tokencrypt/version"
+require_relative "lib/threencr/version"
 
 Gem::Specification.new do |spec|
-  spec.name = "tokencrypt"
-  spec.version = Tokencrypt::VERSION
+  spec.name = "3ncr"
+  spec.version = Threencr::VERSION
   spec.authors = ["3ncr.org"]
   spec.summary = "Ruby implementation of the 3ncr.org v1 string encryption standard (AES-256-GCM)."
   spec.description = <<~DESC

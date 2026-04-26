@@ -5,7 +5,7 @@ require "base64"
 require "openssl"
 require "securerandom"
 
-require_relative "tokencrypt/version"
+require_relative "threencr/version"
 
 # 3ncr.org v1 string encryption.
 #
@@ -15,7 +15,7 @@ require_relative "tokencrypt/version"
 # entropy of the input secret.
 #
 # See https://3ncr.org/1/ for the full specification.
-module Tokencrypt
+module Threencr
   HEADER_V1 = "3ncr.org/1#"
 
   AES_KEY_SIZE = 32
